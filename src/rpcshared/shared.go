@@ -69,7 +69,8 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
     if err != nil {
             log.Println(err)
 	}
-	fmt.Println(string(jsonString))
+	// Print raw json
+	// fmt.Println(string(jsonString))   
 
 	//We want to return the JSON in addition to STDOUT
 	*reply = out.String()
