@@ -20,7 +20,7 @@ type Args struct {
 // Reference: https://github.com/yahoo/open_nsfw
 func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 	pathToTool := "/opennsfw/classify_nsfw.py"
-    fmt.Println("Path to Classify_NSFW.py: " , pathToTool)
+	fmt.Println("Path to Classify_NSFW.py: " , pathToTool)
 
 	ON_Input_Directory := "/tmp/" + args.DataID + "/"
 	// ClassifyNSFW works by a asking a trained model whether or not it scores a high value on an 'NSFW' test
@@ -52,8 +52,8 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 
 
 	//Capture STDOUT
-    var out bytes.Buffer
-    cmd.Stdout = &out
+	var out bytes.Buffer
+	cmd.Stdout = &out
 
 	// Actually run the command: 
     err = cmd.Run()
@@ -66,7 +66,7 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 
 	// Dump everything into JSON in preperation for Elasticsearch upload
 	jsonString, err := json.Marshal(jsonMapping)
-    if err != nil {
+	if err != nil {
             log.Println(err)
 	}
 	// Print raw json
@@ -74,9 +74,9 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 
 	//We want to return the JSON in addition to STDOUT
 	*reply = out.String()
-    if err != nil {
+	if err != nil {
             log.Println(err)
-    }
+	}
 
 	// If all goes well, remove temp directory
 	remerr := os.RemoveAll(ON_Input_Directory)
