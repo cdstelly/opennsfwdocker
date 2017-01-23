@@ -1,16 +1,20 @@
 package rpcshared
 
 import (
-    "fmt"
-    "os/exec"
-	"os"
-    "log"
-    "bytes"
-	"io/ioutil"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/exec"
+	"time"
 )
 
-type OpenNSFW string
+type OpenNSFW struct {
+	NumberRequests int
+	RequestHistory []float64
+}
 
 type Args struct {
 	Data   []byte
@@ -20,7 +24,7 @@ type Args struct {
 // Reference: https://github.com/yahoo/open_nsfw
 func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 	pathToTool := "/opennsfw/classify_nsfw.py"
-	fmt.Println("Path to Classify_NSFW.py: " , pathToTool)
+	fmt.Println("Path to Classify_NSFW.py: ", pathToTool)
 
 	ON_Input_Directory := "/tmp/" + args.DataID + "/"
 	// ClassifyNSFW works by a asking a trained model whether or not it scores a high value on an 'NSFW' test
@@ -38,8 +42,8 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 
 	//Setup the shell command to launch Bulk Extractor
 	opts := []string{"--model_def", "/opennsfw/nsfw_model/deploy.prototxt", "--pretrained_model", "/opennsfw/nsfw_model/resnet_50_1by2_nsfw.caffemodel", filepath}
-	//Should look like the following: 
-	/* 
+	//Should look like the following:
+	/*
 		cd open_nsfw
 		docker run --volume=$(pwd):/workspace caffe:cpu \
 		python ./classify_nsfw.py \
@@ -50,16 +54,23 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 	fmt.Println("Command:\n", pathToTool, " ", opts)
 	cmd := exec.Command(pathToTool, opts...)
 
-
 	//Capture STDOUT
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
-	// Actually run the command: 
-    err = cmd.Run()
+	// Let's measure execution time:
+	startTime := time.Now()
+
+	// Actually run the command:
+	err = cmd.Run()
 	fmt.Println("[-] Output: ", out.String())
 
-	//Post process the BE output
+	// Capture duration
+	executionTime := time.Since(startTime).Seconds() //use seconds as opposed to nanoseconds, returns float64 which is required with stats package
+	t.NumberRequests += 1
+	t.RequestHistory = append(t.RequestHistory, executionTime)
+
+	//Post process the output
 	jsonMapping := make(map[string]string)
 	jsonKey := "NSFW-Score"
 	jsonMapping[jsonKey] = out.String()
@@ -67,15 +78,15 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 	// Dump everything into JSON in preperation for Elasticsearch upload
 	jsonString, err := json.Marshal(jsonMapping)
 	if err != nil {
-            log.Println(err)
+		log.Println(err)
 	}
 	// Print raw json
-	// fmt.Println(string(jsonString))   
+	// fmt.Println(string(jsonString))
 
 	//We want to return the JSON in addition to STDOUT
-	*reply = out.String()
+	*reply = string(jsonString)
 	if err != nil {
-            log.Println(err)
+		log.Println(err)
 	}
 
 	// If all goes well, remove temp directory
@@ -83,6 +94,10 @@ func (t *OpenNSFW) Evaluate(args *Args, reply *string) error {
 	if remerr != nil {
 		fmt.Println("Error cleaning up temporary directory: ", remerr)
 	}
-    return nil
+	return nil
 }
 
+func (t *OpenNSFW) GetHistory(args *Args, reply *[]float64) error {
+	*reply = t.RequestHistory
+	return nil
+}
