@@ -7,7 +7,21 @@ import (
 	"net/http"
 	"log"
 	"rpcshared"
+	"os"
 )
+
+var (
+	MyName string
+	BrokerHost string
+)
+
+func init() {
+	MyName = Generate(2,"-")
+	BrokerHost = os.Getenv("BROKERHOST")
+	if len(BrokerHost) == 0 {
+		BrokerHost = "trex1:5050"
+	}
+}
 
 func startServer() {
 	be := new(rpcshared.OpenNSFW)
@@ -23,6 +37,8 @@ func startServer() {
 //Start the server, listen forever. 
 func main() {
 	startServer()
+	fmt.Println("[*] Server started. \tMy name:", MyName, "\tBrokerHost: ", BrokerHost)
+
 	meta := make(chan int)
 	x := <- meta    /// wait for a while, and listen
 	fmt.Println(x)
