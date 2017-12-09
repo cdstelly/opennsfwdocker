@@ -1,4 +1,5 @@
 FROM ubuntu:14.04
+#need to update to new dockerfile format
 MAINTAINER cdstelly <cdstelly@gmail.com>
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
@@ -40,11 +41,9 @@ ENV PATH $CAFFE_ROOT/build/tools:$PYCAFFE_ROOT:$PATH
 RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
 WORKDIR /workspace
-
 ADD opennsfw      /opennsfw/
 ADD bin/rpcserver /
 ADD bin/rpcclient /
 
 RUN chmod +x /opennsfw/classify_nsfw.py
-
 CMD ["/rpcserver"]
